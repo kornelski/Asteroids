@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>Multisteroids</title>
+<body>
+<canvas id="c1" style="position:absolute; top:0; left:0; right:50%; bottom:0"></canvas>
+<canvas id="c2" style="position:absolute; top:0; left:50%; right:0; bottom:0; border-left:2px solid white; box-sizing:border-box;"></canvas>
+<script src=client.js></script>
+<script src=actors.js></script>
+<script src=server.js></script>
+<script>
+
+var game = new AsteroidGameServer();
+
+function addPlayer(canvas, keys)
+{
+    var game_client = new AsteroidGameClient(game);
+
+    // canvas drawing
+    canvas.width = innerWidth/2; canvas.height = innerHeight;
+    new AsteroidDisplay(game_client, canvas);
+
+    // keyboard input
+    new AsteroidControl(game_client, window, keys); // listen on window, not canvas, so both players can play
+}
+
+addPlayer(document.getElementById('c1'), AsteroidControl.KEYS.WASD);
+addPlayer(document.getElementById('c2'), AsteroidControl.KEYS.Arrows);
+
+</script>
