@@ -88,7 +88,8 @@ AsteroidGameServer.prototype = {
         this.broadcastObjects();
         this.removeObjects();
 
-        setTimeout(this.gameFrame, 1000/30 - duration_ms);
+        // FIXME: deliberately bad and choppy framerate for demonstration
+        setTimeout(this.gameFrame, 1000/(10+Math.random()*15) - duration_ms);
         this.last_frame_time = Date.now();
     },
 
@@ -263,7 +264,11 @@ AsteroidGameServer.prototype = {
             };
 
             // fake websocket :)
-            player.client.onmessage({data:JSON.stringify(data)});
+            (function(player, packet){
+                setTimeout(function(){
+                    player.client.onmessage(packet);
+                }, 200)
+            })(player, {data:JSON.stringify(data)})
         }
     },
 
