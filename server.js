@@ -47,13 +47,6 @@ function AsteroidGameServer()
     // to use it from timer without rebinding all over again
     this.gameFrame = this.gameFrame.bind(this)
 
-    // each object will get unique ID
-    this.uid = 0;
-
-    // Although server sends only changed objects, some are periodically "refreshed"
-    // to keep everything in sync (otherwise different math precision makes their position drift)
-    this.refresh_object_last_index=0;
-
     this.objects = [];
     // objects are not removed immediately, as this would complicate collisions and efficient client updates
     this.objects_to_remove = [];
@@ -180,9 +173,6 @@ AsteroidGameServer.prototype = {
 
                 if (dist > radii*radii) continue;
 
-                // mark objects as "interesting" to send (since they're likely to change velocity)
-                o1.send=o2.send=true;
-
                 // They touched at point which is weighed average of their positions and radiuses.
                 // I can't use o2.origin, because delta may have been wrapped around
                 // so I compute o2 from o1-delta, so they're both in the same "tile" of the world
@@ -230,34 +220,14 @@ AsteroidGameServer.prototype = {
 
     // tell everyone that something has changed
     broadcastObjects: function() {
-
-        // not an array, since only changed objects are sent
-        var objects = {};
-
-        // and since only changes are sent, I can send them whenever
-        // so I can also limit number of them sent per frame to keep game mostly smooth
-        var max_objects_per_frame = 10;
-
-        // I'll send update for one extra object per frame in case
-        // client's extrapolated position drifted away from server's
-        // and that also helps newly connected clients to learn about all objects
-        this.objects[this.refresh_object_last_index++ % this.objects.length].send=true;
-
-        // if player's ship changed position, then viewport that tracks it should too
-        for(var k=0; k < this.players.length; k++) {
-            this.players[k].send_viewport = this.players[k].ship.send;
-        }
+        var objects = new Array(this.objects.length);
 
         // collect objects to send
         for(var i=0; i < this.objects.length; i++) {
             var o = this.objects[i];
 
-            if (!o.send) continue;
-            if (max_objects_per_frame-- <= 0) break;
-            o.send=false;
-
             // I only send simplified copy of the object to client
-            objects[o.id] = {
+            objects[i] = {
                 x: round(o.origin.x),
                 y: round(o.origin.y),
                 vx: o.velocity.x|0, // rounds to integer. It's velocity per second, so fractional precision is unnecessary
@@ -279,25 +249,18 @@ AsteroidGameServer.prototype = {
             data.new_particles = this.new_particles;
         }
 
-        if (this.objects_to_remove.length) {
-            data.remove = []
-            for(var l=0; l < this.objects_to_remove.length; l++) {
-                data.remove.push(this.objects_to_remove[l].id)
-            }
-        }
-
         for(var j=0; j < this.players.length; j++) {
             var player = this.players[j];
 
             // player's viewport tracks the ship
-            data.viewport = player.send_viewport ? {
+            data.viewport = {
                 x: round(player.ship.origin.x),
                 y: round(player.ship.origin.y),
                 vx: player.ship.velocity.x|0,
                 vy: player.ship.velocity.y|0,
                 world_size: this.world_size,
                 view_size: this.world_size*0.6,
-            } : undefined;
+            };
 
             // fake websocket :)
             player.client.onmessage({data:JSON.stringify(data)});
@@ -316,12 +279,10 @@ AsteroidGameServer.prototype = {
 
     // place new object on the map
     addObject: function(obj) {
-        obj.id = ++this.uid; // they need unique ID to be matched on client side
         this.objects.push(obj);
     },
 
     removeObject: function(obj) {
-        obj.send = false; // its ID will be in removed objects list, no need to send details
         this.objects_to_remove.push(obj);
     },
 

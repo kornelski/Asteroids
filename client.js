@@ -267,18 +267,16 @@ AsteroidGameClient.prototype = {
         this.viewport.timestamp = now;
 
         var world_size = this.viewport.world_size;
+        var obj_duration_s = (now - this.objects_timestmap)/1000;
+        this.objects_timestmap = now;
         for(var i=0; i < this.objects.length; i++) {
             var obj = this.objects[i];
 
             // it's a sparse array - there are "gaps" from deleted objects
             if (!obj) continue;
 
-            // each object has its own timestamp, because server sends them selectively
-            // and some of them may be older
-            var obj_duration_s = (now - obj.timestamp)/1000;
             obj.x += obj.vx * obj_duration_s;
             obj.y += obj.vy * obj_duration_s;
-            obj.timestamp = now;
 
             // wrap around the map
             if (obj.y > world_size) {
@@ -338,19 +336,9 @@ AsteroidGameClient.prototype = {
 
             // That's the important whole-world update
             case 'world':
-                // objects are sent in a dictionary with only changed object IDs
-                for(var id in data.objects) {
-                    this.objects[id] = data.objects[id];
-                    this.objects[id].timestamp = data.timestamp; // remember when object was changed for extrapolation
-                }
 
-                // if only newly added objects are sent in data.objects,
-                // then there must be a way to remove old ones
-                if (data.remove) {
-                    for(var i=0; i < data.remove.length; i++) {
-                        this.objects[data.remove[i]] = undefined // I don't splice the array, because I want to look up by ID
-                    }
-                }
+                this.objects = data.objects;
+                this.objects_timestmap = data.timestamp;
 
                 if (data.viewport) {
                     this.viewport = data.viewport;

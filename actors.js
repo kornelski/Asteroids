@@ -17,7 +17,6 @@ function Actor(game, type_name, x, y, radius)
     this.origin = {x:+x||0, y:+y||0};
     this.velocity = {x:rand(10), y:rand(10)};
     this.radius = radius;
-    this.send = true; // make sure initial state is sent to the client
 }
 
 // owner is the Player object
@@ -70,7 +69,6 @@ Ship.prototype = {
     },
 
     rotate: function(direction) {
-        this.send = true; // make sure client sees the rotation
         this.angle += direction * this.rotation_power;
     },
 
@@ -84,8 +82,6 @@ Ship.prototype = {
     },
 
     accelerate: function(duration_s) {
-        this.send = true;
-
         // acceleration direction and magnitude
         var ax = Math.cos(this.angle + Math.PI) * this.engine_power;
         var ay = Math.sin(this.angle + Math.PI) * this.engine_power;
@@ -185,7 +181,6 @@ Missile.prototype = {
 
         this.fuel -= duration_s; // use fuel
         if (this.fuel > 0) { // and accelerate only if there's fuel left
-            this.send = true;
 
             if (this.fuel < 0.7) {
             this.velocity.x -= ax * duration_s;
