@@ -255,44 +255,7 @@ AsteroidGameClient.prototype = {
 
         if (!this.viewport) return; // no information from server yet
 
-        // time cached for performance and to avoid skew when update takes noticeable time
         var now = Date.now();
-
-        // Extrapolation. For every x,y position I also get velocity and timestamp when move started
-        // so I add velocity multiplied by time elapsed to get current position
-        // This applies to move of viewport as well.
-        var viewport_duration_s = (now - this.viewport.timestamp)/1000;
-        this.viewport.x += this.viewport.vx * viewport_duration_s;
-        this.viewport.y += this.viewport.vy * viewport_duration_s;
-        this.viewport.timestamp = now;
-
-        var world_size = this.viewport.world_size;
-        var obj_duration_s = (now - this.objects_timestmap)/1000;
-        this.objects_timestmap = now;
-        for(var i=0; i < this.objects.length; i++) {
-            var obj = this.objects[i];
-
-            // it's a sparse array - there are "gaps" from deleted objects
-            if (!obj) continue;
-
-            obj.x += obj.vx * obj_duration_s;
-            obj.y += obj.vy * obj_duration_s;
-
-            // wrap around the map
-            if (obj.y > world_size) {
-                obj.y %= world_size;
-            }
-            else if (obj.y < 0) {
-                obj.y += world_size;
-            }
-
-            if (obj.x > world_size) {
-                obj.x %= world_size;
-            }
-            else if (obj.x < 0) {
-                obj.x += world_size;
-            }
-        }
 
         this.updateParticlePositions(this.particles, this.last_particle_update, now);
         this.last_particle_update = now;
